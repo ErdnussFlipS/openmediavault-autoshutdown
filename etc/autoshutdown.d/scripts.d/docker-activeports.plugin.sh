@@ -26,10 +26,13 @@ function _checkContainer() {
     local CONTAINER_PORTS=$2
 
     local CONTAINER_NAME=$(docker inspect -f '{{.Name}}' $CONTAINER_ID)
-    echo "Open ports in container '$CONTAINER_NAME'"
+    echo "Active ports in container '$CONTAINER_NAME'"
 
     local CONTAINER_PID=$(docker inspect -f '{{.State.Pid}}' $CONTAINER_ID)
-    sudo nsenter --target $CONTAINER_PID --net netstat
+    #sudo nsenter --target $CONTAINER_PID --net netstat
+
+    # (?<item>[^\s]*){0}(?<empty>[\s]+){0}(?1)(?2)(?1)(?2)(?1)(?2)(?1)(?2)(?:[^\s:]*:22)(?2)(?1)[\n\r]*
+    sudo nsenter --target $CONTAINER_PID --net ss -n | grep ESTAB
 }
 
 # script
