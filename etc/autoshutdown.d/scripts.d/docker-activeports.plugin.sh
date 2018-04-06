@@ -4,35 +4,62 @@
 
 # functions
 
+function regextool() {
+    local REGEX=$1
+    perl -wnE "say for /${REGEX}/g"
+}
+
+# _parseConfig(configuration)
 function _parseConfig() {
     local CONFIGURATION="$1"
 
-    # (?<containerid>[^:]*):(?<containerports>.*)[\n\r]*
     local CONTAINER_ID_OR_NAME=$(expr match "$CONFIGURATION" '\([^:]*\):.*[\n\r]*')
     local CONTAINER_PORTS=$(expr match "$CONFIGURATION" '[^:]*:\(.*\)[\n\r]*')
-    # echo "Container id or name: $CONTAINER_ID_OR_NAME"
-    # echo "Container ports: $CONTAINER_PORTS"
-
-    # local CONTAINER_PORTS_ARRAY;
-    # IFS=','; CONTAINER_PORTS_ARRAY=($CONTAINER_PORTS); unset IFS;
-
+    
     CONTAINER_CONFIG_IDS=("${CONTAINER_CONFIG_IDS[@]}" "$CONTAINER_ID_OR_NAME")
     CONTAINER_CONFIG_PORTS=("${CONTAINER_CONFIG_PORTS[@]}" "$CONTAINER_PORTS")
+}
+
+# _checkContainerPort(containerPid, containerPort, connectionState)
+function _checkContainerPort() {
+    local CONTAINER_PID="$1"
+    local CHECKED_PORT="$2"
+    local CHECKED_STATE="$3"
+    local SS_REGEX_FOR_LOCAL_PORT='([^\s]*[\s]+'${CHECKED_STATE}'(?:[\s]+[^\s]*){2}[\s]+(?:[^\s]+:'${CHECKED_PORT}')[\s]+(?:[^\s]+)[\n\r]*)'
+
+    #echo "nsenter --target $CONTAINER_PID --net ss -n"
+    sudo nsenter --target $CONTAINER_PID --net ss -n | regextool "$SS_REGEX_FOR_LOCAL_PORT"
 }
 
 # _checkContainer(id, ports)
 function _checkContainer() {
     local CONTAINER_ID=$1
     local CONTAINER_PORTS=$2
-
     local CONTAINER_NAME=$(docker inspect -f '{{.Name}}' $CONTAINER_ID)
+    local CONTAINER_PID=$(docker inspect -f '{{.State.Pid}}' $CONTAINER_ID)
+    
     echo "Active ports in container '$CONTAINER_NAME'"
 
-    local CONTAINER_PID=$(docker inspect -f '{{.State.Pid}}' $CONTAINER_ID)
-    #sudo nsenter --target $CONTAINER_PID --net netstat
+    local RETURN_CODE=0
+    for PORT in ${CONTAINER_PORTS//,/ }
+    do
+        local CHECK_RESULT
+        mapfile CHECK_RESULT < <(_checkContainerPort "$CONTAINER_PID" "$PORT" "ESTAB")
 
-    # (?<item>[^\s]*){0}(?<empty>[\s]+){0}(?1)(?2)(?1)(?2)(?1)(?2)(?1)(?2)(?:[^\s:]*:22)(?2)(?1)[\n\r]*
-    sudo nsenter --target $CONTAINER_PID --net ss -n | grep ESTAB
+        if [ "#${CHECK_RESULT[0]}" == "#" ]; then
+            continue
+        else
+            printf '%s' "${CHECK_RESULT[@]}"
+        fi
+
+        ((RETURN_CODE++))
+    done
+
+    if [ "${RETURN_CODE}" == "0" ]; then
+        echo "No active ports"
+    fi
+
+    return $RETURN_CODE
 }
 
 # script
@@ -45,20 +72,29 @@ SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST=""
 declare -a CONTAINER_CONFIG_IDS
 declare -a CONTAINER_CONFIG_PORTS
 
-index=0
+echo ">>>>>>> Plugin start"; echo
+PLUGIN_RESULT_CODE=0
+INDEX=0
 for SCRIPTPLUGIN_DOCKER_CONTAINER_CONF in $SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST
 do
     echo "Container conf: $SCRIPTPLUGIN_DOCKER_CONTAINER_CONF"
     _parseConfig "$SCRIPTPLUGIN_DOCKER_CONTAINER_CONF"
-    _checkContainer "${CONTAINER_CONFIG_IDS[$index]}" "${CONTAINER_CONFIG_PORTS[$index]}"
+    _checkContainer "${CONTAINER_CONFIG_IDS[$INDEX]}" "${CONTAINER_CONFIG_PORTS[$INDEX]}"
+    CONTAINER_CHECK_RTCODE=$?
+
+    if [ $CONTAINER_CHECK_RTCODE -ne 0 ]; then
+        PLUGIN_RESULT_CODE=1
+    fi
 
     echo
-    ((index++))
+    ((INDEX++))
 done
 
-echo ${CONTAINER_CONFIG_IDS[@]}
-echo ${CONTAINER_CONFIG_PORTS[@]}
+if [ $PLUGIN_RESULT_CODE -eq 1 ]; then
+    echo "Some container ports are active, plugin want prevent shutdown"
+else
+    echo "No container ports are active."
+fi
+echo "<<<<<<< Plugin end"
 
-# RUNNING_CONTAINERS=$(docker ps -q --no-trunc)
-
-exit 1
+exit $PLUGIN_RESULT_CODE
