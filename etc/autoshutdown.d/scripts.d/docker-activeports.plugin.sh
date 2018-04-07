@@ -65,6 +65,7 @@ function _checkContainer() {
 # script
 
 #env
+#declare -p
 
 SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST=${SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST:-""}
 
