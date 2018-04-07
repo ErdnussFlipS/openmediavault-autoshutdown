@@ -66,35 +66,41 @@ function _checkContainer() {
 
 #env
 
-SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST=""
-
+SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST=${SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST:-""}
 
 declare -a CONTAINER_CONFIG_IDS
 declare -a CONTAINER_CONFIG_PORTS
 
 echo ">>>>>>> Plugin start"; echo
+
 PLUGIN_RESULT_CODE=0
-INDEX=0
-for SCRIPTPLUGIN_DOCKER_CONTAINER_CONF in $SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST
-do
-    echo "Container conf: $SCRIPTPLUGIN_DOCKER_CONTAINER_CONF"
-    _parseConfig "$SCRIPTPLUGIN_DOCKER_CONTAINER_CONF"
-    _checkContainer "${CONTAINER_CONFIG_IDS[$INDEX]}" "${CONTAINER_CONFIG_PORTS[$INDEX]}"
-    CONTAINER_CHECK_RTCODE=$?
 
-    if [ $CONTAINER_CHECK_RTCODE -ne 0 ]; then
-        PLUGIN_RESULT_CODE=1
-    fi
-
-    echo
-    ((INDEX++))
-done
-
-if [ $PLUGIN_RESULT_CODE -eq 1 ]; then
-    echo "Some container ports are active, plugin want prevent shutdown"
+if [ "#$SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST" == "#" ]; then
+    echo "Plugin not configured."; echo
 else
-    echo "No container ports are active."
+    INDEX=0
+    for SCRIPTPLUGIN_DOCKER_CONTAINER_CONF in $SCRIPTPLUGIN_DOCKER_CONTAINER_CONFLIST
+    do
+        echo "Container conf: $SCRIPTPLUGIN_DOCKER_CONTAINER_CONF"
+        _parseConfig "$SCRIPTPLUGIN_DOCKER_CONTAINER_CONF"
+        _checkContainer "${CONTAINER_CONFIG_IDS[$INDEX]}" "${CONTAINER_CONFIG_PORTS[$INDEX]}"
+        CONTAINER_CHECK_RTCODE=$?
+
+        if [ $CONTAINER_CHECK_RTCODE -ne 0 ]; then
+            PLUGIN_RESULT_CODE=1
+        fi
+
+        echo
+        ((INDEX++))
+    done
+
+    if [ $PLUGIN_RESULT_CODE -eq 1 ]; then
+        echo "Some container ports are active, plugin want prevent shutdown"
+    else
+        echo "No container ports are active."
+    fi
 fi
+
 echo "<<<<<<< Plugin end"
 
 exit $PLUGIN_RESULT_CODE
