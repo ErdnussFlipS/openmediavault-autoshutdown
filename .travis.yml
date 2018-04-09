@@ -6,6 +6,7 @@ services:
   - docker
 
 before_install:
+  - docker --version
   - docker pull ownyourbits/debiandev
   - docker run -d -v $PWD:/build/src:rw --name build-container ownyourbits/debiandev
   - docker ps -a
