@@ -3,7 +3,7 @@ language: generic
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y debhelper devscripts fakeroot build-essential
+  - sudo apt-get install -y systemd debhelper devscripts fakeroot build-essential
 
 script:
   - fakeroot debian/rules clean binary
