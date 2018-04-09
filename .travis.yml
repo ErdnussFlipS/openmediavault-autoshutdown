@@ -7,11 +7,12 @@ services:
 
 before_install:
   - docker --version
+  - docker exec --help
   - docker pull ownyourbits/debiandev
   - docker run -d -v $PWD:/build/src:rw --name build-container ownyourbits/debiandev
   - docker ps -a
 
 script:
-  - docker exec -it -w "/build/src" build-container fakeroot debian/rules clean binary
+  - docker exec -it --workdir "/build/src" build-container fakeroot debian/rules clean binary
   - ls -la
   - ls -la ..
