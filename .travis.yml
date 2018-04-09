@@ -8,6 +8,7 @@ services:
 script:
   - docker --version
   - id $(whoami)
+  - chmod -r a+rwx *
   - docker pull ownyourbits/debiandev
   - docker run -v $PWD:/build/src --name build-container ownyourbits/debiandev bash -c "id \$(whoami); cd /build/src && fakeroot debian/rules clean binary"
   - docker logs build-container
