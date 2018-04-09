@@ -9,7 +9,8 @@ script:
   - docker --version
   - docker exec --help
   - docker pull ownyourbits/debiandev
-  - docker run -it -v $PWD:/build/src:rw --name build-container ownyourbits/debiandev bash -c "cd /build/src && fakeroot debian/rules clean binary"
+  - docker run -d -v $PWD:/build/src:rw --name build-container ownyourbits/debiandev bash -c "cd /build/src && fakeroot debian/rules clean binary"
+  - docker logs build-container
   - docker cp build-container:/build/*.deb .
   - ls -la
   - ls -la ..
