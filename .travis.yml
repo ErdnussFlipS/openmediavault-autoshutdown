@@ -1,11 +1,16 @@
 sudo: required
+
 language: generic
 
 services:
   - docker
 
-script:
-  - wget -O- http://travis.debian.net/script.sh | sh -
+before_install:
+  - docker pull ownyourbits/debiandev
+  - docker run -d -v $PWD:/build/src:rw --name build-container ownyourbits/debiandev
+  - docker ps -a
 
-if:
-  tag IS blank
+script:
+  - docker exec -it -w "/build/src" build-container fakeroot debian/rules clean binary
+  - ls -la
+  - ls -la ..
