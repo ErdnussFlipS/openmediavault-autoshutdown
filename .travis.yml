@@ -1,11 +1,16 @@
 sudo: required
+
 language: generic
 
+services:
+  - docker
+
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y systemd debhelper devscripts fakeroot build-essential
+  - docker pull ownyourbits/debiandev
+  - docker run -d ownyourbits/debiandev -v $PWD:/build:rw --name build-container
+  - docker ps -a
 
 script:
-  - fakeroot debian/rules clean binary
+  - docker exec -it -w "/build" build-container fakeroot debian/rules clean binary
   - ls -la
   - ls -la ..
