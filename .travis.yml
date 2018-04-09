@@ -13,6 +13,7 @@ before_install:
   - docker ps -a
 
 script:
+  - docker start build-container
   - docker exec -it build-container bash -c "cd /build/src && fakeroot debian/rules clean binary"
   - ls -la
   - ls -la ..
