@@ -11,7 +11,7 @@ script:
   - chmod -vR a+rwx .
   - ls -la
   - docker pull ownyourbits/debiandev
-  - docker run -v $PWD:/build/src --name build-container ownyourbits/debiandev bash -c "id \$(whoami); cd /build/src && fakeroot debian/rules clean binary"
+  - docker run --user=root -v $PWD:/build/src --name build-container ownyourbits/debiandev bash -c "id \$(whoami); cd /build/src && ls -la && fakeroot debian/rules clean binary"
   - docker logs build-container
   - docker cp build-container:/build/*.deb .
   - ls -la
