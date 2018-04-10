@@ -9,7 +9,7 @@ script:
   - docker --version
   - id $(whoami)
   - chmod -vR a=rwx ../
-  - chown -r 1000:1000 ../
+  - chown -vR 1000:1000 ../
   - ls -la
   - docker pull ownyourbits/debiandev
   - docker run -v $PWD/../:/build --name build-container ownyourbits/debiandev bash -c "id \$(whoami); cd /build/openmediavault-autoshutdown && ls -la && fakeroot debian/rules clean binary"
